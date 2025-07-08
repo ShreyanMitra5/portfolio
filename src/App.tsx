@@ -246,7 +246,7 @@ function App() {
               <h2 className={darkMode ? "text-3xl font-semibold text-white mb-6" : "text-3xl font-semibold text-gray-900 mb-6"}>Let's connect</h2>
               <p className={darkMode ? "text-gray-200 mb-8 max-w-2xl mx-auto text-lg leading-relaxed" : "text-gray-600 mb-8 max-w-2xl mx-auto text-lg leading-relaxed"}>
                 I'm always interested in research opportunities and cool projects. 
-                Feel free to reach out if you want to chat about ML, physics, anything tech-related or if you just want to chat.
+                Feel free to reach out if you want to talk about ML, physics, anything tech-related or if you just want to chat.
               </p>
               <a 
                 href="mailto:shreyan.mitra09@gmail.com" 
