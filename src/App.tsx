@@ -1,287 +1,647 @@
-import React, { useState } from 'react';
-import { Github, Linkedin, Mail, ExternalLink, MapPin, Code2, BookOpen, Coffee, DollarSign, Atom } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import { motion, useInView, useScroll, useSpring } from 'framer-motion';
+import { Github, Linkedin, Mail, MapPin, ArrowUpRight, Bot, Leaf, Cpu, Wind, Trophy, Users, Calendar } from 'lucide-react';
 
-function App() {
-  const [showAllProjects, setShowAllProjects] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+/* ─── Theme tokens ──────────────────────────────────────────────── */
+const INK   = '#1a0f07';  // primary dark brown
+const CREAM = '#f6f1e8';  // page background
+const SIENNA = '#7c5530'; // accent warm brown
 
-  const projects = [
-    {
-      title: "Clubly",
-      description: "Clubly is an all-in-one platform I created to help student leaders organize, communicate, and grow their clubs with confidence. Sign up for the waitlist now 😁",
-      tech: ["Python", "Pytorch", "Groq", "MongoDB", "React", "Tailwind CSS", "Supabase", "AWS", "Assembly API"],
-      link: "https://www.clubly.tech/",
-      status: "Testing"
-    },
-    {
-      title: "CodeWithPurpose",
-      description: "I co-founded CodeWithPurpose to provide accessible coding education via Udemy courses, reaching 900+ students globally and donating earnings to support charitable causes.",
-      tech: ["React", "Node.js", "MongoDB", "Stripe"],
-      link: "https://codewp.tech/",
-      status: "Live"
-    },
-    {
-      title: "VetPy",
-      description: "VetPy is a website that teaches veterans Python basics for coding jobs and offers blog posts on topics like Data Science and Game Development to keep them engaged.",
-      tech: ["JavaScript", "HTML", "CSS"],
-      link: "https://shreyanmitra5.github.io/VetPy/",
-      status: "Live"
-    },
-    {
-      title: "Grizzly Hacks",
-      description: "GrizzlyHacks is a student-run hackathon, originally founded by the Python Club, that brings together passionate students to build projects, learn, and grow in a supportive community.",
-      tech: ["Python", "HTML", "CSS", "JavaScript"],
-      link: "https://grizzlyhacks.com/",
-      status: "Testing"
-    },
-    {
-      title: "Verofy",
-      description: "Chrome extension and Flask API that detects fake news headlines using a fine-tuned BERT model. Instantly spots misinformation and provides credibility scores for news articles.",
-      tech: ["Python", "Flask", "BERT", "JavaScript", "Chrome Extension", "HTML", "CSS"],
-      link: "https://www.verofy.us/",
-      status: "Live",
-      icon: "/IMG_5821.jpg" // Placeholder for screenshot icon, replace with actual if available
-    },
-    {
-      title: "Anasa AI",
-      description: "AI-powered platform that detects emotions in real-time using NLP text analysis and facial recognition, offering supportive interventions for digital wellbeing.",
-      tech: ["Node.js", "Next.js", "TypeScript", "MongoDB", "Tailwind CSS", "HTML", "CSS"],
-      link: "https://v0-cool-website-statistics.vercel.app/",
-      status: "Live"
-    },
-    {
-      title: "Sonar",
-      description: "NLP-powered solution for code detection in text, leveraging RoBERTa and DeBERTa models. Also includes a music streaming service UI and metaverse IP platform.",
-      tech: ["Python", "Jupyter Notebook", "Transformers", "PyTorch", "RoBERTa", "DeBERTa-v3", "Node.js", "HTML", "Vanilla CSS"],
-      link: "https://v0-recreate-ui-screenshot-eta-ten.vercel.app/",
-      status: "Live"
-    },
-  ];
+/* ─── Types ────────────────────────────────────────────────────── */
+interface Stat {
+  Icon: React.ElementType;
+  label: string;
+  value: number;
+  suffix: string;
+  prefix?: string;
+}
 
-  const interests = [
-    { icon: Code2, text: "Machine Learning & AI" },
-    { icon: DollarSign, text: "Quantitative Finance" },
-    { icon: Atom, text: "Physics & Engineering" }
-  ];
+interface FeaturedProject {
+  title: string;
+  image: string;
+  description: string;
+  link: string;
+  status: string;
+  tech: string[];
+  stats?: Stat[];
+}
 
-  const displayedProjects = showAllProjects ? projects : projects.slice(0, 3);
+interface OtherProject {
+  title: string;
+  description: string;
+  link: string;
+  status: string;
+  tech: string[];
+}
 
+/* ─── Animation constants ───────────────────────────────────────── */
+const ease = [0.22, 1, 0.36, 1] as const;
+
+const FADE_UP = {
+  hidden: { opacity: 0, y: 22 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease } },
+};
+
+const STAGGER = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1, delayChildren: 0.1 } },
+};
+
+/* ─── Scroll progress bar ───────────────────────────────────────── */
+function ScrollProgress() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
   return (
-    <div className={darkMode ? "min-h-screen bg-[#18181b] text-gray-100 transition-colors" : "min-h-screen bg-white text-gray-900 transition-colors"}>
-      {/* Dark/Light Mode Toggle */}
-      <div className="fixed top-4 right-4 z-50">
-        <button
-          onClick={() => setDarkMode(!darkMode)}
-          className={darkMode ? "p-2 rounded-full border border-gray-700 bg-[#232326] text-gray-100 shadow hover:bg-[#232326]/80 hover:text-white transition-colors" : "p-2 rounded-full border border-gray-300 bg-white text-gray-900 shadow hover:bg-gray-100 transition-colors"}
-          aria-label="Toggle dark mode"
-        >
-          {darkMode ? (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.07l-.71.71M21 12h-1M4 12H3m16.66 5.66l-.71-.71M4.05 4.93l-.71-.71M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z" /></svg>
-          )}
-        </button>
-      </div>
-      {/* Header */}
-      <header className={darkMode ? "border-b border-gray-800 bg-[#18181b] backdrop-blur" : "border-b border-gray-100 bg-white backdrop-blur"}>
-        <div className="max-w-4xl mx-auto px-8 py-12">
-          <div className="flex flex-col md:flex-row md:items-center gap-12">
-            <div className="flex-shrink-0">
-              <img 
-                src="/IMG_5821.jpg" 
-                alt="Shreyan Mitra" 
-                className={darkMode ? "w-40 h-40 rounded-2xl object-cover shadow-lg border-4 border-gray-700" : "w-40 h-40 rounded-2xl object-cover shadow-md border-4 border-gray-200"}
-              />
-            </div>
-            <div className="flex-grow">
-              <h1 className={darkMode ? "text-4xl font-bold text-white mb-3" : "text-4xl font-bold text-gray-900 mb-3"}>Shreyan Mitra</h1>
-              <p className={darkMode ? "text-xl text-white mb-5" : "text-xl text-gray-600 mb-5"}>Aspiring Quantitative Developer</p>
-              <div className={darkMode ? "flex items-center text-white mb-5" : "flex items-center text-gray-500 mb-5"}>
-                <MapPin size={18} className="mr-3" />
-                <span>San Ramon, CA</span>
-              </div>
-              <div className="flex gap-4">
-                <a 
-                  href="https://github.com/ShreyanMitra5" 
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  <Github size={20} />
-                </a>
-                <a 
-                  href="https://www.linkedin.com/" 
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  <Linkedin size={20} />
-                </a>
-                <a 
-                  href="mailto:shreyan.mitra09@gmail.com"
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  <Mail size={20} />
-                </a>
-              </div>
-            </div>
-            <div className="flex-shrink-0">
-              <div className="bg-green-50 text-green-700 px-4 py-2 rounded-full text-sm font-medium">
-                Interested in Research Internships
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-6 py-12">
-        {/* About */}
-        <section className="mb-16">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">About</h2>
-          <div className="prose prose-lg text-gray-700 max-w-none">
-            <p className={darkMode ? "mb-6 leading-relaxed text-white" : "mb-6 leading-relaxed"}>
-              Hey there! I'm a rising junior in high school who loves to code. I am a machine learning 
-              enthusiast, and I'm also really into computer engineering and physics.
-            </p>
-            <p className={darkMode ? "leading-relaxed text-white" : "leading-relaxed"}>
-              When I'm not coding or studying, you can find me watching or playing basketball or 
-              strumming my guitar. Currently, I am the founder and CEO of Clubly, built to turn student-led clubs from chaotic to organized through smart planning, communication, and leadership tools.
-            </p>
-          </div>
-          
-          <div className="mt-8">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">What I'm into</h3>
-            <div className="flex flex-wrap gap-4">
-              {interests.map((interest, index) => (
-                <div key={index} className="flex items-center bg-gray-50 px-4 py-2 rounded-lg">
-                  <interest.icon size={16} className="mr-2 text-gray-600" />
-                  <span className="text-gray-700">{interest.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Projects */}
-        <section className={darkMode ? "mb-20 bg-[#232326] rounded-2xl shadow-lg p-10" : "mb-20 bg-white/80 rounded-2xl shadow p-10"}>
-          <h2 className={darkMode ? "text-3xl font-semibold text-gray-100 mb-10" : "text-3xl font-semibold text-gray-900 mb-10"}>Projects</h2>
-          <div className="space-y-10">
-            {displayedProjects.map((project, index) => {
-              // Color logic for status and card accent
-              let statusColor = "";
-              let cardAccent = "";
-              let cardBg = darkMode ? "bg-[#232326]" : "bg-white";
-              if (project.status === "Live") {
-                statusColor = darkMode ? "bg-green-600 text-white" : "bg-green-100 text-green-700";
-                cardAccent = darkMode ? "border-l-4 border-green-500" : "border-l-4 border-green-400";
-                cardBg = darkMode ? "bg-green-950/30" : "bg-green-50";
-              } else if (project.status === "Complete") {
-                statusColor = darkMode ? "bg-blue-600 text-white" : "bg-blue-100 text-blue-700";
-                cardAccent = darkMode ? "border-l-4 border-blue-500" : "border-l-4 border-blue-400";
-                cardBg = darkMode ? "bg-blue-950/30" : "bg-blue-50";
-              } else if (project.status === "Testing") {
-                statusColor = darkMode ? "bg-yellow-600 text-white" : "bg-yellow-100 text-yellow-800";
-                cardAccent = darkMode ? "border-l-4 border-yellow-500" : "border-l-4 border-yellow-400";
-                cardBg = darkMode ? "bg-yellow-950/20" : "bg-yellow-50";
-              } else {
-                statusColor = darkMode ? "bg-gray-700 text-gray-200" : "bg-gray-100 text-gray-700";
-                cardAccent = darkMode ? "border-l-4 border-gray-600" : "border-l-4 border-gray-300";
-                cardBg = darkMode ? "bg-[#232326]" : "bg-white";
-              }
-              return (
-                <div key={index} className={`border rounded-2xl p-8 hover:border-opacity-80 transition-colors shadow ${cardAccent} ${cardBg} ${darkMode ? "border-gray-700" : "border-gray-200"}`}>
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className={darkMode ? "text-2xl font-semibold text-gray-100 mb-3" : "text-2xl font-semibold text-gray-900 mb-3"}>{project.title}</h3>
-                      <div className="flex items-center gap-4">
-                        <span className={`px-3 py-1 text-sm font-semibold rounded-full shadow ${statusColor}`}>
-                          {project.status}
-                        </span>
-                      </div>
-                    </div>
-                    <a href={project.link} target="_blank" rel="noopener noreferrer" className={darkMode ? "text-gray-300 hover:text-white transition-colors mt-1" : "text-gray-400 hover:text-gray-600 transition-colors mt-1"}>
-                      <ExternalLink size={20} />
-                    </a>
-                  </div>
-                  <p className={darkMode ? "text-gray-200 mb-6 leading-relaxed text-lg" : "text-gray-700 mb-6 leading-relaxed text-lg"}>
-                    {project.description}
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {project.tech.map((tech, techIndex) => (
-                      <span key={techIndex} className={darkMode ? "px-4 py-1 bg-[#18181b] text-gray-100 text-base rounded-md font-mono border border-gray-700" : "px-4 py-1 bg-gray-100 text-gray-700 text-base rounded-md font-mono"}>
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {!showAllProjects && projects.length > 3 && (
-            <div className="flex justify-center mt-8">
-              <button
-                onClick={() => setShowAllProjects(true)}
-                className={darkMode ? "px-6 py-2 bg-[#18181b] text-gray-100 border border-gray-700 rounded-lg font-semibold shadow hover:bg-[#232326] transition-colors" : "px-6 py-2 bg-gray-900 text-white rounded-lg font-semibold shadow hover:bg-gray-800 transition-colors"}
-              >
-                Load More
-              </button>
-            </div>
-          )}
-          {showAllProjects && projects.length > 3 && (
-            <div className="flex justify-center mt-8">
-              <button
-                onClick={() => setShowAllProjects(false)}
-                className={darkMode ? "px-6 py-2 bg-[#232326] text-gray-100 border border-gray-700 rounded-lg font-semibold shadow hover:bg-[#18181b] transition-colors" : "px-6 py-2 bg-gray-200 text-gray-900 rounded-lg font-semibold shadow hover:bg-gray-300 transition-colors"}
-              >
-                Show Less
-              </button>
-            </div>
-          )}
-        </section>
-
-        {/* Contact */}
-        <section className="flex items-center justify-center py-20">
-          <div className={darkMode ? "relative min-h-[350px] w-full max-w-3xl rounded-2xl shadow-lg bg-[#232326]/90" : "relative min-h-[350px] w-full max-w-3xl rounded-2xl shadow bg-gray-100"}>
-            <div className="relative z-10 flex flex-col items-center justify-center p-12 min-h-[350px]">
-              <h2 className={darkMode ? "text-3xl font-semibold text-white mb-6" : "text-3xl font-semibold text-gray-900 mb-6"}>Let's connect</h2>
-              <p className={darkMode ? "text-gray-200 mb-8 max-w-2xl mx-auto text-lg leading-relaxed" : "text-gray-600 mb-8 max-w-2xl mx-auto text-lg leading-relaxed"}>
-                I'm always interested in research opportunities and cool projects. 
-                Feel free to reach out if you want to talk about ML, physics, anything tech-related or if you just want to chat.
-              </p>
-              <a 
-                href="mailto:shreyan.mitra09@gmail.com" 
-                className={darkMode ? "inline-flex items-center px-8 py-4 bg-white text-black rounded-xl hover:bg-gray-200 transition-colors font-semibold text-lg shadow" : "inline-flex items-center px-8 py-4 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors font-semibold text-lg shadow"}
-              >
-                <Mail size={20} className="mr-3" />
-                Get in touch
-              </a>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* Footer text overlaid on the mountain SVG, both pushed much higher */}
-      <div className="relative w-full flex flex-col items-center justify-end" style={{ minHeight: '0' }}>
-        <div className="absolute left-0 right-0 bottom-24 md:bottom-32 lg:bottom-48 flex justify-center pointer-events-none select-none z-10">
-          <span className="text-gray-500 dark:text-gray-300 text-sm md:text-base font-medium px-4 py-2 rounded-lg bg-white/70 dark:bg-black/40 shadow-md backdrop-blur-sm" style={{textShadow: '0 2px 8px rgba(0,0,0,0.18)'}}>© 2024 Shreyan Mitra. Made with creativity and a lot of coffee.</span>
-        </div>
-        {/* Enhanced Mountain SVG at the bottom of the page, now just below main content */}
-        <div className="w-full overflow-hidden -mt-20 md:-mt-28 lg:-mt-36" style={{ position: 'relative', zIndex: 0 }}>
-          <svg viewBox="0 0 1440 600" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-[320px] md:h-[420px] lg:h-[600px]">
-            {/* Back layer */}
-            <path d="M0 600L180 500L320 540L480 480L600 520L800 420L1000 520L1200 440L1440 500V600H0Z" fill={darkMode ? '#232326' : '#a3bffa'} />
-            {/* Middle layer */}
-            <path d="M0 600L120 540L300 500L500 560L700 480L900 540L1100 460L1300 520L1440 560V600H0Z" fill={darkMode ? '#18181b' : '#7f9cf5'} fillOpacity="0.85" />
-            {/* Front layer */}
-            <path d="M0 600L80 580L200 540L400 580L600 540L800 580L1000 560L1200 580L1440 600V600H0Z" fill={darkMode ? '#34343a' : '#5a67d8'} fillOpacity="0.7" />
-            {/* Extra peaks for coolness */}
-            <path d="M200 600L300 520L350 540L400 500L500 580L600 520L700 560L800 500L900 580L1000 540L1100 580L1200 520L1300 580L1440 600" stroke={darkMode ? '#5a67d8' : '#4c51bf'} strokeWidth="6" fill="none" opacity="0.5" />
-            <path d="M0 600L100 570L200 590L300 570L400 590L500 570L600 590L700 570L800 590L900 570L1000 590L1100 570L1200 590L1300 570L1440 600" stroke={darkMode ? '#a3bffa' : '#a3bffa'} strokeWidth="4" fill="none" opacity="0.4" />
-          </svg>
-        </div>
-      </div>
-    </div>
+    <motion.div
+      className="fixed top-0 left-0 right-0 h-[2px] origin-left z-[60]"
+      style={{ scaleX, background: `linear-gradient(90deg, ${SIENNA}99 0%, ${SIENNA}44 100%)` }}
+    />
   );
 }
 
-export default App;
+/* ─── Fade-in on scroll ─────────────────────────────────────────── */
+function FadeIn({ children, delay = 0, className = '' }: {
+  children: React.ReactNode; delay?: number; className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-50px' });
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 20 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.65, delay, ease }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/* ─── Section label ─────────────────────────────────────────────── */
+function SectionLabel({ index, title }: { index: string; title: string }) {
+  return (
+    <FadeIn>
+      <div className="flex items-center gap-5 mb-14">
+        <span className="text-[10px] font-bold tracking-[0.3em] uppercase tabular-nums" style={{ color: `${INK}33` }}>
+          {index}
+        </span>
+        <div className="w-5 h-px" style={{ background: `${INK}20` }} />
+        <span className="text-[10px] font-bold tracking-[0.28em] uppercase" style={{ color: `${INK}33` }}>
+          {title}
+        </span>
+        <div className="flex-1 h-px" style={{ background: `${INK}10` }} />
+      </div>
+    </FadeIn>
+  );
+}
+
+/* ─── Animated counter ──────────────────────────────────────────── */
+function CountUp({ value, suffix = '', prefix = '' }: { value: number; suffix?: string; prefix?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true });
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    if (!inView) return;
+    const start = Date.now();
+    const dur = 1500;
+    const tick = () => {
+      const t = Math.min((Date.now() - start) / dur, 1);
+      setDisplay(Math.round((1 - Math.pow(1 - t, 3)) * value));
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [inView, value]);
+  return <span ref={ref}>{prefix}{display}{suffix}</span>;
+}
+
+/* ─── Abstract decorative SVG ───────────────────────────────────── */
+function OrbitalRings({ opacity = 0.045 }: { opacity?: number }) {
+  return (
+    <svg viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ opacity }}>
+      <circle cx="260" cy="260" r="258" stroke={INK} strokeWidth="0.75" />
+      <circle cx="260" cy="260" r="200" stroke={INK} strokeWidth="0.5" strokeDasharray="3 9" />
+      <circle cx="260" cy="260" r="142" stroke={INK} strokeWidth="0.75" />
+      <circle cx="260" cy="260" r="84"  stroke={INK} strokeWidth="0.5" strokeDasharray="1.5 6" />
+      <line x1="260" y1="2"   x2="260" y2="518" stroke={INK} strokeWidth="0.4" strokeDasharray="2 10" />
+      <line x1="2"   y1="260" x2="518" y2="260" stroke={INK} strokeWidth="0.4" strokeDasharray="2 10" />
+    </svg>
+  );
+}
+
+/* ─── Data ──────────────────────────────────────────────────────── */
+const interests = [
+  { Icon: Bot,  label: 'AI / Machine Learning' },
+  { Icon: Leaf, label: 'Agricultural Technology' },
+  { Icon: Cpu,  label: 'Electronics & Hardware' },
+  { Icon: Wind, label: 'UAV / Drones' },
+];
+
+const featuredProjects: FeaturedProject[] = [
+  {
+    title: 'Clubly',
+    image: '/proj/clubly.png',
+    description: 'All-in-one platform helping student leaders organize, communicate, and grow their clubs — planning, communication, and leadership tools in one place.',
+    link: 'https://clubly.space/',
+    status: 'Testing',
+    tech: ['Python', 'PyTorch', 'Groq', 'MongoDB', 'React', 'AWS', 'Supabase'],
+  },
+  {
+    title: 'CodeWithPurpose',
+    image: '/proj/cwp.png',
+    description: 'Co-founded an accessible coding education platform reaching 900+ students globally via Udemy, with earnings donated to charitable causes.',
+    link: 'https://codewithpurpose.org/',
+    status: 'Live',
+    tech: ['React', 'Node.js', 'MongoDB', 'Stripe'],
+  },
+  {
+    title: 'Grizzly Hacks',
+    image: '/proj/gh.png',
+    description: 'Student-run hackathon I help lead — bringing builders together each year to create, learn, and grow as a community.',
+    link: 'https://grizzlyhacks.com/',
+    status: 'Live',
+    tech: ['Python', 'HTML', 'CSS', 'JavaScript'],
+    stats: [
+      { Icon: Trophy,   label: 'in prizes', value: 90,  suffix: 'k+', prefix: '$' },
+      { Icon: Users,    label: 'hackers',   value: 550, suffix: '+'               },
+      { Icon: Calendar, label: 'years',     value: 4,   suffix: '+'               },
+    ],
+  },
+];
+
+const otherProjects: OtherProject[] = [
+  {
+    title: 'Verofy',
+    description: 'Chrome extension + Flask API detecting fake news via fine-tuned BERT. Real-time credibility scores for any article.',
+    link: 'https://www.verofy.us/',
+    status: 'Live',
+    tech: ['Python', 'Flask', 'BERT', 'JavaScript', 'Chrome Extension'],
+  },
+  {
+    title: 'Anasa AI',
+    description: 'Emotion detection via NLP and facial recognition for real-time digital wellbeing support.',
+    link: 'https://v0-cool-website-statistics.vercel.app/',
+    status: 'Live',
+    tech: ['Next.js', 'TypeScript', 'MongoDB', 'Tailwind CSS'],
+  },
+  {
+    title: 'VetPy',
+    description: 'Teaching veterans Python fundamentals for tech careers, with posts on Data Science and Game Development.',
+    link: 'https://shreyanmitra5.github.io/VetPy/',
+    status: 'Live',
+    tech: ['JavaScript', 'HTML', 'CSS'],
+  },
+  {
+    title: 'Sonar',
+    description: 'NLP code-detection in text using RoBERTa and DeBERTa-v3, plus a music streaming UI.',
+    link: 'https://v0-recreate-ui-screenshot-eta-ten.vercel.app/',
+    status: 'Live',
+    tech: ['Python', 'PyTorch', 'RoBERTa', 'DeBERTa-v3'],
+  },
+];
+
+const NAV_ITEMS = ['about', 'work', 'contact'];
+
+/* ─── App ───────────────────────────────────────────────────────── */
+export default function App() {
+  return (
+    <div
+      className="min-h-screen selection:bg-amber-200 selection:text-amber-900"
+      style={{ background: CREAM, color: INK }}
+    >
+      <ScrollProgress />
+
+      {/* Subtle dot-grid texture */}
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(circle, ${INK}09 1px, transparent 1px)`,
+          backgroundSize: '30px 30px',
+        }}
+      />
+
+      {/* ── Floating nav ── */}
+      <motion.nav
+        initial={{ opacity: 0, y: -14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="fixed top-5 inset-x-0 z-50 flex justify-center"
+      >
+        <div
+          className="flex items-center gap-0.5 px-2 py-1.5 rounded-full backdrop-blur-xl"
+          style={{
+            border: `1px solid ${INK}12`,
+            background: `${CREAM}cc`,
+            boxShadow: `0 8px 32px -8px ${INK}18`,
+          }}
+        >
+          <span
+            className="px-3 py-1 text-[11px] font-black tracking-[0.2em] uppercase select-none"
+            style={{ color: `${INK}30` }}
+          >
+            SM
+          </span>
+          <div className="w-px h-3.5 mx-1" style={{ background: `${INK}12` }} />
+          {NAV_ITEMS.map((item) => (
+            <a
+              key={item}
+              href={`#${item}`}
+              className="px-4 py-1.5 text-[13px] rounded-full capitalize transition-all duration-200"
+              style={{ color: `${INK}55` }}
+              onMouseEnter={e => { (e.target as HTMLElement).style.color = INK; (e.target as HTMLElement).style.background = `${INK}07`; }}
+              onMouseLeave={e => { (e.target as HTMLElement).style.color = `${INK}55`; (e.target as HTMLElement).style.background = 'transparent'; }}
+            >
+              {item}
+            </a>
+          ))}
+        </div>
+      </motion.nav>
+
+      {/* ══════════════════════════════════════════════════════════
+          HERO
+      ══════════════════════════════════════════════════════════ */}
+      <section className="min-h-screen flex items-center px-6 md:px-14 py-32 relative overflow-hidden">
+
+        {/* Orbital rings — abstract decoration, top-right */}
+        <div className="absolute -top-32 -right-32 w-[560px] h-[560px] pointer-events-none select-none">
+          <OrbitalRings opacity={0.05} />
+        </div>
+        {/* Small cross marker — abstract detail */}
+        <div className="absolute bottom-16 left-12 pointer-events-none select-none opacity-[0.08]">
+          <svg width="24" height="24" viewBox="0 0 24 24"><line x1="12" y1="0" x2="12" y2="24" stroke={INK} strokeWidth="1"/><line x1="0" y1="12" x2="24" y2="12" stroke={INK} strokeWidth="1"/></svg>
+        </div>
+        <div className="absolute top-32 left-1/3 pointer-events-none select-none opacity-[0.06]">
+          <svg width="16" height="16" viewBox="0 0 16 16"><line x1="8" y1="0" x2="8" y2="16" stroke={INK} strokeWidth="0.75"/><line x1="0" y1="8" x2="16" y2="8" stroke={INK} strokeWidth="0.75"/></svg>
+        </div>
+
+        <div className="max-w-[1100px] mx-auto w-full">
+          <div className="flex flex-col-reverse md:flex-row md:items-center gap-14 md:gap-20">
+
+            {/* ── Text column ── */}
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={STAGGER}
+              className="flex-1 min-w-0"
+            >
+              {/* Location */}
+              <motion.div variants={FADE_UP} className="flex items-center gap-2 mb-10" style={{ color: `${INK}40` }}>
+                <MapPin size={11} />
+                <span className="text-[12px] tracking-wide">San Ramon, CA</span>
+                <span className="mx-1" style={{ color: `${INK}20` }}>·</span>
+                <span className="text-[12px] tracking-wide" style={{ color: SIENNA + '99' }}>
+                  Open to research
+                </span>
+              </motion.div>
+
+              {/* Name — Cormorant Garamond, italic, very large */}
+              <motion.h1
+                variants={FADE_UP}
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontStyle: 'italic',
+                  fontWeight: 300,
+                  fontSize: 'clamp(72px, 14vw, 124px)',
+                  letterSpacing: '-0.02em',
+                  lineHeight: 0.88,
+                  color: INK,
+                }}
+                className="mb-8"
+              >
+                Shreyan<br />Mitra
+              </motion.h1>
+
+              {/* Role — small caps, warm brown */}
+              <motion.p
+                variants={FADE_UP}
+                className="text-[11px] font-semibold tracking-[0.22em] uppercase mb-6"
+                style={{ color: SIENNA + 'aa' }}
+              >
+                Aspiring Research Scientist
+              </motion.p>
+
+              {/* Tagline */}
+              <motion.p
+                variants={FADE_UP}
+                className="text-[15px] leading-[1.95] max-w-[390px] mb-11"
+                style={{ color: `${INK}55` }}
+              >
+                Building at the frontier of AI/ML, agricultural technology, and autonomous systems. Rising junior who makes things that matter.
+              </motion.p>
+
+              {/* Social links */}
+              <motion.div variants={FADE_UP} className="flex items-center gap-6">
+                {[
+                  { Icon: Github,   label: 'GitHub',  href: 'https://github.com/ShreyanMitra5' },
+                  { Icon: Linkedin, label: 'LinkedIn', href: 'https://www.linkedin.com/in/shreyan-m-8910172b7/' },
+                  { Icon: Mail,     label: 'Email',    href: 'mailto:shreyan.mitra09@gmail.com' },
+                ].map(({ Icon, label, href }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target={href.startsWith('mailto') ? undefined : '_blank'}
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-[13px] transition-colors duration-200"
+                    style={{ color: `${INK}38` }}
+                    onMouseEnter={e => (e.currentTarget.style.color = INK)}
+                    onMouseLeave={e => (e.currentTarget.style.color = `${INK}38`)}
+                  >
+                    <Icon size={14} />
+                    {label}
+                  </a>
+                ))}
+              </motion.div>
+            </motion.div>
+
+            {/* ── Photo column — clean, no overlay ── */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.15, ease }}
+              className="relative shrink-0 md:w-[340px] w-full max-w-[300px] mx-auto md:mx-0"
+            >
+              {/* Warm paper shadow behind photo */}
+              <div
+                className="absolute inset-0 rounded-3xl translate-x-3 translate-y-3"
+                style={{ background: `${SIENNA}18` }}
+              />
+              <img
+                src="/shrey.jpeg"
+                alt="Shreyan Mitra"
+                className="relative w-full rounded-3xl object-cover object-top"
+                style={{
+                  height: 'clamp(300px, 46vw, 450px)',
+                  boxShadow: `0 0 0 1px ${INK}10, 0 20px 60px -12px ${INK}22`,
+                }}
+              />
+            </motion.div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════
+          ABOUT
+      ══════════════════════════════════════════════════════════ */}
+      <section id="about" className="py-28 px-6 md:px-14">
+        <div className="max-w-[1100px] mx-auto">
+          <SectionLabel index="01" title="About" />
+
+          <div className="grid md:grid-cols-[1fr_auto] gap-14 md:gap-20 items-start">
+            <div className="space-y-5 max-w-[520px]">
+              <FadeIn delay={0.04}>
+                <p className="text-[15px] leading-[1.95]" style={{ color: `${INK}60` }}>
+                  Hey — I'm a junior in high school in San Ramon, CA who loves to build things. I aspire to become a research scientist, working at the intersection of AI/ML, agricultural technology, electronics, and autonomous aerial systems.
+                </p>
+              </FadeIn>
+              <FadeIn delay={0.09}>
+                <p className="text-[15px] leading-[1.95]" style={{ color: `${INK}60` }}>
+                  When I'm not coding, you'll find me on the basketball court or with a guitar in hand. Currently growing Clubly into the definitive platform for student-led organizations.
+                </p>
+              </FadeIn>
+            </div>
+
+            <FadeIn delay={0.13}>
+              <div className="grid grid-cols-2 gap-3 w-full md:w-[260px]">
+                {interests.map(({ Icon, label }) => (
+                  <div
+                    key={label}
+                    className="flex flex-col gap-3 p-4 rounded-2xl transition-all duration-300 cursor-default"
+                    style={{ border: `1px solid ${INK}0d`, background: `${INK}03` }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.border = `1px solid ${INK}18`; (e.currentTarget as HTMLElement).style.background = `${INK}06`; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.border = `1px solid ${INK}0d`; (e.currentTarget as HTMLElement).style.background = `${INK}03`; }}
+                  >
+                    <Icon size={17} style={{ color: SIENNA + '88' }} />
+                    <span className="text-[11px] leading-snug" style={{ color: `${INK}55` }}>{label}</span>
+                  </div>
+                ))}
+              </div>
+            </FadeIn>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════
+          WORK
+      ══════════════════════════════════════════════════════════ */}
+      <section id="work" className="py-28 px-6 md:px-14">
+        <div className="max-w-[1100px] mx-auto">
+          <SectionLabel index="02" title="Work" />
+
+          {/* Featured project cards with screenshots */}
+          <div className="grid md:grid-cols-3 gap-4 mb-16">
+            {featuredProjects.map((project, i) => (
+              <FadeIn key={project.title} delay={i * 0.09}>
+                <a
+                  href={project.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex flex-col h-full rounded-2xl overflow-hidden transition-all duration-300"
+                  style={{ border: `1px solid ${INK}0d`, background: `${INK}02` }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.border = `1px solid ${INK}18`; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.border = `1px solid ${INK}0d`; }}
+                >
+                  {/* Screenshot */}
+                  <div className="relative overflow-hidden h-[185px] shrink-0">
+                    <img
+                      src={project.image}
+                      alt={project.title}
+                      className="w-full h-full object-cover object-top group-hover:scale-[1.04] transition-transform duration-700"
+                    />
+                    <div
+                      className="absolute inset-0"
+                      style={{ background: `linear-gradient(to top, ${CREAM} 0%, ${CREAM}44 30%, transparent 100%)` }}
+                    />
+                  </div>
+
+                  {/* Card body */}
+                  <div className="flex flex-col flex-1 p-5">
+                    <div className="flex items-start justify-between gap-2 mb-2.5">
+                      <h3 className="font-semibold text-[15px] leading-tight transition-colors" style={{ color: `${INK}cc` }}>
+                        {project.title}
+                      </h3>
+                      <ArrowUpRight
+                        size={14}
+                        className="shrink-0 mt-0.5 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                        style={{ color: `${INK}25` }}
+                      />
+                    </div>
+
+                    <p className="text-[12px] leading-relaxed mb-4 flex-1" style={{ color: `${INK}50` }}>
+                      {project.description}
+                    </p>
+
+                    {/* GrizzlyHacks stats */}
+                    {project.stats && (
+                      <div
+                        className="grid grid-cols-3 gap-2 mb-4 px-3 py-3 rounded-xl"
+                        style={{ background: `${INK}05`, border: `1px solid ${INK}08` }}
+                      >
+                        {project.stats.map(({ label, value, suffix, prefix }) => (
+                          <div key={label} className="flex flex-col items-center text-center gap-0.5">
+                            <span
+                              className="text-[16px] font-bold leading-none tabular-nums"
+                              style={{ color: `${INK}cc`, fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                            >
+                              <CountUp value={value} suffix={suffix} prefix={prefix} />
+                            </span>
+                            <span className="text-[9px] uppercase tracking-wide leading-tight" style={{ color: `${INK}35` }}>
+                              {label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Tech chips */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {project.tech.slice(0, 4).map((t) => (
+                        <span
+                          key={t}
+                          className="text-[10px] px-2 py-0.5 rounded font-mono"
+                          style={{ background: `${INK}07`, color: `${INK}45` }}
+                        >
+                          {t}
+                        </span>
+                      ))}
+                      {project.tech.length > 4 && (
+                        <span
+                          className="text-[10px] px-2 py-0.5 rounded font-mono"
+                          style={{ background: `${INK}05`, color: `${INK}30` }}
+                        >
+                          +{project.tech.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </a>
+              </FadeIn>
+            ))}
+          </div>
+
+          {/* Other projects — list */}
+          <FadeIn delay={0.1}>
+            <p
+              className="text-[9px] font-bold tracking-[0.28em] uppercase mb-5"
+              style={{ color: `${INK}28` }}
+            >
+              More projects
+            </p>
+            <div>
+              {otherProjects.map((project) => (
+                <a
+                  key={project.title}
+                  href={project.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-start justify-between gap-4 py-4 transition-colors duration-200"
+                  style={{ borderBottom: `1px solid ${INK}0a` }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderBottom = `1px solid ${INK}18`; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderBottom = `1px solid ${INK}0a`; }}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="font-semibold text-[14px] mb-1.5 transition-colors"
+                      style={{ color: `${INK}88` }}
+                    >
+                      {project.title}
+                    </p>
+                    <p className="text-[12px] leading-relaxed mb-2" style={{ color: `${INK}45` }}>
+                      {project.description}
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {project.tech.slice(0, 5).map((t) => (
+                        <span
+                          key={t}
+                          className="text-[10px] px-1.5 py-0.5 rounded font-mono"
+                          style={{ background: `${INK}06`, color: `${INK}38` }}
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <ArrowUpRight
+                    size={13}
+                    className="shrink-0 mt-0.5 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                    style={{ color: `${INK}22` }}
+                  />
+                </a>
+              ))}
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════
+          CONTACT
+      ══════════════════════════════════════════════════════════ */}
+      <section id="contact" className="py-28 px-6 md:px-14 relative overflow-hidden">
+        {/* Abstract orbital — partial, bottom-right corner */}
+        <div className="absolute -bottom-40 -right-40 w-[420px] h-[420px] pointer-events-none select-none">
+          <OrbitalRings opacity={0.04} />
+        </div>
+
+        <div className="max-w-[1100px] mx-auto relative">
+          <SectionLabel index="03" title="Contact" />
+
+          <div className="max-w-[500px]">
+            <FadeIn delay={0.04}>
+              <h2
+                className="mb-7"
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontStyle: 'italic',
+                  fontWeight: 300,
+                  fontSize: 'clamp(44px, 8vw, 76px)',
+                  letterSpacing: '-0.02em',
+                  lineHeight: 0.9,
+                  color: INK,
+                }}
+              >
+                Let's work<br />together.
+              </h2>
+            </FadeIn>
+
+            <FadeIn delay={0.09}>
+              <p className="text-[15px] leading-[1.9] mb-10" style={{ color: `${INK}52` }}>
+                Open to research opportunities, interesting projects, and conversations about AI, agriculture, UAVs, or anything at the edge of what's possible.
+              </p>
+            </FadeIn>
+
+            <FadeIn delay={0.14}>
+              <a
+                href="mailto:shreyan.mitra09@gmail.com"
+                className="inline-flex items-center gap-2.5 px-6 py-3 rounded-full text-[13px] transition-all duration-200"
+                style={{ border: `1px solid ${INK}18`, background: `${INK}05`, color: `${INK}70` }}
+                onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = INK; el.style.border = `1px solid ${INK}30`; el.style.background = `${INK}09`; }}
+                onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = `${INK}70`; el.style.border = `1px solid ${INK}18`; el.style.background = `${INK}05`; }}
+              >
+                <Mail size={14} />
+                shreyan.mitra09@gmail.com
+                <ArrowUpRight size={13} />
+              </a>
+            </FadeIn>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-8 px-6 md:px-14" style={{ borderTop: `1px solid ${INK}08` }}>
+        <div className="max-w-[1100px] mx-auto flex items-center justify-between">
+          <p className="text-[11px]" style={{ color: `${INK}28` }}>© 2025 Shreyan Mitra</p>
+          <p
+            className="text-[11px]"
+            style={{
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontStyle: 'italic',
+              color: `${INK}28`,
+            }}
+          >
+            San Ramon, CA
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}
